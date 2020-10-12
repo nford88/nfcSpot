@@ -1,0 +1,204 @@
+<!doctype html>
+<html>
+
+<head>
+  <title>Example of the Authorization Code flow with Spotify</title>
+  <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css">
+  <script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+  <style>
+    body {
+      font-size: 16px;
+      line-height: 1.5;
+      font-weight: 400;
+    }
+
+    #nfc_esp_spotify {
+      height: 100%;
+      position: relative;
+      background: black;
+      color: white;
+      font-family: Circular, spotify-circular, Helvetica, Arial, sans-serif;
+    }
+
+
+    .buttons {
+      padding: 30px 15px;
+    }
+
+    .user-profile-devices {
+      border: 1px solid black;
+      padding: 25px 0px;
+      border-radius: 15px;
+    }
+
+    .tokens {
+      margin-top: 15px;
+      margin-bottom: 15px;
+      border: 1px solid black;
+      padding: 15px 15px;
+      border-radius: 15px;
+    }
+
+    .custom-select {
+      color: black
+    }
+  </style>
+
+</head>
+
+<body>
+
+
+  <div id="nfc_esp_spotify">
+    <div class="container">
+
+
+      <div class="title text-center">
+        <a href="/">
+          <h1 class="display-2">Welcome to NFCSpot</h1>
+        </a>
+      </div>
+
+      <template v-if="accessGranted == false">
+        <div class="login">
+          <h2>Step 1</h2>
+          <h4>Click here to get your token from Spotify</h4>
+          <button class="btn btn-primary" @click="getCodeFromSpotify()">Submit</button>
+          <hr>
+        </div>
+        <div>
+          <h2>Step 2</h2>
+          <h4>Click here to get your token into NFC Spot Arduino Device</h4>
+          <label>Enter Token</label>
+          <input type="text" v-model="code_input" placeholder="Type a string" />
+          <button class="btn btn-primary" @click="htmlLoginRedirect()">Submit</button>
+        </div>
+      </template>
+
+      <template v-else>
+
+        <section class="buttons row">
+          <div class="col text-center">
+            <button class="btn btn-success" @click="getDevices">Refresh Devices</button>
+            <button class="btn btn-success" @click="getRefreshToken">Refresh Token</button>
+            <button class="btn btn-success" @click="downloadJson">Download JSON</button>
+          </div>
+        </section>
+
+        <section class="row user-profile-devices">
+          <div v-if="profile != ''" class="col-md-8">
+            <div class="media">
+              <div class="pull-left">
+                <img class="media-object" width="150" :src="profile.images[0].url" />
+              </div>
+              <div class="media-body">
+                <dl class="dl-horizontal">
+                  <dt>Display name</dt>
+                  <dd class="clearfix">{{profile.display_name}}</dd>
+                  <dt>Id</dt>
+                  <dd>{{profile.id}}</dd>
+                  <dt>Email</dt>
+                  <dd>{{profile.email}}</dd>
+                  <dt>Spotify URI</dt>
+                  <dd><a :href="profile.external_urls.spotify">{{profile.external_urls.spotify}}</a></dd>
+                  <dt>Link</dt>
+                  <dd><a :href="profile.href">{{profile.href}}</a></dd>
+                  <dt>Profile Image</dt>
+                  <dd class="clearfix"><a target="_blank" :href="profile.images[0].url">View</a></dd>
+                  <dt>Country</dt>
+                  <dd>{{profile.country}}</dd>
+                </dl>
+              </div>
+            </div>
+          </div>
+          <div v-if="devices != ''" class="input-group col-md-4">
+            <div class="input-group-prepend">
+              <label class="input-group-text" for="inputGroupSelect01">Devices</label>
+            </div>
+            <select v-model="selectedDevice" class="custom-select" id="inputGroupSelect02">
+              <option disabled selected value="">Choose your device</option>
+              <option v-for="items in devices" :value="items.id">{{ items.name }} - {{ items.volume_percent}}%
+              </option>
+            </select>
+          </div>
+        </section>
+
+
+        <section class="row tokens">
+          <div class="col">
+            <label>Access Token</label>
+            <pre style="white-space: pre-wrap;">{{ access_token }}</pre>
+          </div>
+          <div class="col">
+            <label>Refresh Token</label>
+            <pre style="white-space: pre-wrap;">{{ refresh_token }}</pre>
+          </div>
+        </section>
+
+        <section class="albums">
+          <div>
+            <div class="input row">
+              <div class="input-group col-6">
+                <div class="input-group-prepend">
+                  <span class="input-group-text" id="basic-addon1">Card ID</span>
+                </div>
+                <input v-model="albumSearch.cardId" type="text" class="form-control" placeholder="Card ID"
+                  aria-label="Card ID" aria-describedby="basic-addon1">
+
+                <div class="input-group-prepend">
+                  <span class="input-group-text" id="basic-addon2">Spotify Album Id</span>
+                </div>
+                <input v-model="albumSearch.albumId" type="text" class="form-control" placeholder="Spotify Album Id"
+                  aria-label="Spotify Album Id" aria-describedby="basic-addon2">
+              </div>
+
+              <button class="btn btn-success" @click="getAlbumInfo(albumSearch.cardId, albumSearch.albumId)">Add
+                Album</button>
+              <button class="btn btn-alert" @click="getDevices">Clear</button>
+
+
+            </div>
+          </div>
+
+          <table class="table">
+            <thead class="thead-dark">
+              <tr>
+                <th scope="col">Card No#</th>
+                <th scope="col">Image</th>
+                <th scope="col">Artist</th>
+                <th scope="col">Album</th>
+                <th scope="col">Spotify Album Id</th>
+                <th scope="col">Play</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="album in albumList" :key="album.cardId">
+                <th scope="row">{{album.cardId}}</th>
+                <td>
+                  <div style="height:100px">
+                    <img style="height:100%" :src="album.image_url" />
+                  </div>
+                </td>
+                <td>{{album.artistName}}</td>
+                <td>{{album.albumName}}</td>
+                <td>{{album.context_uri}}</td>
+                <td>
+                  <button class="btn btn-success" @click="playOnSelectedDevice(album.context_uri)">Play</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+      </template>
+    </div>
+  </div>
+</body>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.0.0/crypto-js.min.js"
+  integrity="sha512-nOQuvD9nKirvxDdvQ9OMqe2dgapbPB7vYAMrzJihw5m+aNcf0dX53m6YxM4LgA9u8e9eg9QX+/+mPu8kCNpV2A=="
+  crossorigin="anonymous"></script>
+<script src="/app.js"></script>
+
+</html>

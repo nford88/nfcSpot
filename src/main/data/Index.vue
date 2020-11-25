@@ -4,12 +4,9 @@
 
   <head>
     <title>Example of the Authorization Code flow with Spotify</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.2.1/css/bootstrap.min.css"
-      integrity="sha512-c8AIFmn4e0WZnaTOCXTOLzR+uIrTELY9AeIuUq6ODGaO619BjqG2rhiv/y6dIdmM7ba+CpzMRkkztMPXfVBm9g=="
-      crossorigin="anonymous" />
+    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css">
     <script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
-    <script src="app.js"></script>
     <style>
       body {
         font-size: 16px;
@@ -209,7 +206,7 @@
 
 <script>
 
-  var vue = new Vue({
+  new Vue({
     el: '#nfc_esp_spotify',
     data: {
       access_token: '',
@@ -279,6 +276,7 @@
     mounted() {
       var q = this.parseQueryString(window.location.search.substring(1));
       console.log('this is parse string', q);
+      // Check if the server returned an error string
       if (q.error) {
         alert("Error returned from authorization server: " + q.error);
         return false
@@ -305,13 +303,15 @@
     },
     methods: {
       async getCodeFromSpotify() {
+        // Create and store a random "state" value
         const state = this.generateRandomString();
         localStorage.setItem("pkce_state", state);
-
+        // Create and store a new PKCE code_verifier (the plaintext random secret)
         const code_verifier = this.generateRandomString();
         localStorage.setItem("pkce_code_verifier", code_verifier);
-
-
+        // Hash and base64-urlencode the secret to use as the challenge
+        const code_challenge = await this.pkceChallengeFromVerifier(code_verifier);
+        // Build the authorization URL
         const url = this.config.authorization_endpoint
           + "?response_type=code"
           + "&client_id=" + encodeURIComponent(this.config.client_id)
@@ -321,9 +321,11 @@
           + "&code_challenge=" + encodeURIComponent(code_challenge)
           + "&code_challenge_method=S256"
           ;
+        // Redirect to the authorization server
         window.location = url;
       },
       getAccessTokenFromCode(code) {
+        // Exchange the authorization code for an access token
         const token = {
           grant_type: "authorization_code",
           code: code,
@@ -415,6 +417,7 @@
             })
         } else {
           await this.getRefreshToken();
+          // this.getDevices();
         }
       },
       getAlbumInfo(cardId, albumId) {
@@ -455,11 +458,11 @@
           },
           "position_ms": 0
         };
-        const url = 'https://api.spotify.com/v1/me/player/play?device_id=' + this.selectedDevice;
+        const url = 'https://api.spotify.com/v1/me/player/play?device_id=' + this.selectedDevice
         if (this.isTokenValid) {
           fetch(url,
             {
-              method: 'PUT',
+              method: 'PUT', // 'GET', 'PUT', 'DELETE', etc.
               body: JSON.stringify(album),
               headers: {
                 'Authorization': 'Bearer ' + this.access_token
@@ -486,10 +489,11 @@
         }
         fetch('http://localhost:8888/json-to-esp',
           {
-            method: 'POST',
+            method: 'POST', // 'GET', 'PUT', 'DELETE', etc.
             body: JSON.stringify(newObj),
             headers: {
               'Content-Type': 'application/json'
+              // 'Content-Type': 'application/x-www-form-urlencoded',
             },
           }).then(response => {
             response.json().then(json => {
@@ -503,6 +507,9 @@
         return myDate.setHours(myDate.getHours() + 1);
       },
       async pkceChallengeFromVerifier(v) {
+        // Create SHA256
+        // Then convert the base64 encoded to base64url encoded
+        //   (replace + with -, replace / with _, trim trailing =)
         const hashed = CryptoJS.SHA256(v);
         const base64 = CryptoJS.enc.Base64.stringify(hashed);
         const strip = base64

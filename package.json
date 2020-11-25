@@ -1,0 +1,23 @@
+{
+  "name": "espruino-http-server",
+  "version": "0.0.1",
+  "description": "Espruino Boilerplate for ESP8266 server",
+  "main": "index.js",
+  "scripts": {
+    "reset": "npm run erase && npm run flash",
+    "reupload": "npm run reset && npm run upload",
+    "uglify": "uglifyjs src/main/data/* --compress --mangle -o ./index.js ",
+    "upload": "espruino -p /dev/cu.SLAB_USBtoUART -b 115200 --board ./board/ESP8266_4MB.json -e 'save()' index.js",
+    "screen": "screen /dev/cu.SLAB_USBtoUART 115200",
+    "build": "vue build ./src/main/data/Index.vue"
+  },
+  "author": "Cuneyt Aliustaoglu",
+  "license": "ISC",
+  "devDependencies": {
+    "espruino": "^0.1.12",
+    "uglify-js": "^3.4.7"
+  },
+  "dependencies": {
+    "vue": "^2.9.6"
+  }
+}

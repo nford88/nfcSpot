@@ -50,21 +50,13 @@ new Vue({
     }
   },
   computed: {
-    accessGranted() {
-      // var urlParams = new URLSearchParams(window.location.search);
-      // if (urlParams.has('access_token')) {
-      //   this.access_token = urlParams.get('access_token');
-      //   if (urlParams.has('refresh_token')) {
-      //     this.refresh_token = urlParams.get('refresh_token');
-      //   }
-      //   return true
-      // }
+    accessGranted: function () {
       if (this.access_token != '') {
         return true;
       }
       return false;
     },
-    isTokenValid() {
+    isTokenValid: function () {
       console.warn('expiry', this.expiry);
       console.warn('current time', new Date().getTime());
       if (this.expiry > new Date().getTime()) {
@@ -244,7 +236,7 @@ new Vue({
               else {
                 console.log('Album not found');
               }
-            })
+            })1
           })
       } else {
         getRefreshToken();
